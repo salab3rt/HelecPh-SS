@@ -1,9 +1,34 @@
 import keyboard
+import pyautogui
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
 from PyQt5 import QtGui
-from helpers.screenshot import take_screenshot_and_modify, serialized_icon
+from PyQt5.QtCore import QTimer
+from helpers.screenshot import serialized_icon
 
+def take_screenshot_and_modify():
+    from helpers.screenshot import modify_image, recognize_text, save_cut_section
+    # Take screenshot
+    screenshot = pyautogui.screenshot()
 
+    # Perform modifications using Pillow
+    modified_image, cut_section = modify_image(screenshot)
+
+    # Display the modified image (you can replace this with your logic)
+    modified_image.show()
+
+    # Use Tesseract OCR to recognize text from the cut section
+    recognized_text = recognize_text(cut_section)
+
+    # Save the cut section with a filename based on the recognized text
+    save_cut_section(cut_section, recognized_text)
+    
+    show_tooltip("Recognized Text", recognized_text)
+
+def show_tooltip(title, text):
+    # Set the tooltip for the system tray icon
+    tray_icon.setToolTip(f"{title}: {text}")
+
+    # Schedule the tooltip to close after the specified duration
 
 def exit_application():
     app.quit()
