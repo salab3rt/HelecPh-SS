@@ -2,7 +2,7 @@ import keyboard
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QWidget
 from PyQt5.QtGui import QIcon
 from helpers.screenshot import ScreenshotProcessor
-
+import threading
 class ScreenshotApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -11,7 +11,7 @@ class ScreenshotApp(QWidget):
         self.init_ui()
         
         app.setQuitOnLastWindowClosed(False)
-        keyboard.add_hotkey("ctrl+space", self.take_screenshot_and_modify)
+        keyboard.add_hotkey("ctrl+space", self.on_hotkey_pressed)
         keyboard.add_hotkey("ctrl+alt+e", self.close_app)
 
     def init_ui(self):
@@ -29,6 +29,10 @@ class ScreenshotApp(QWidget):
         menu.addAction(exit_action)
 
         self.tray_icon.setContextMenu(menu)
+
+    def on_hotkey_pressed(self):
+        # Create a new thread when the hotkey is pressed
+        threading.Thread(target=self.take_screenshot_and_modify).start()
 
     def take_screenshot_and_modify(self):
         screenshot = self.processor.take_screenshot()
@@ -53,5 +57,7 @@ if __name__ == "__main__":
     screenshot_app = ScreenshotApp()
     try:
         app.exec_()
+    except KeyboardInterrupt:
+        app.quit()
     except Exception as e:
         print(f"Exception: {e}")

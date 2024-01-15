@@ -3,3 +3,4 @@ pyautogui
 PyQt5
 #pywin32
 pytesseract
+asyncio

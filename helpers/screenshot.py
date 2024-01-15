@@ -27,7 +27,7 @@ class ScreenshotProcessor:
     def save_cut_section(self, image, filename):
         try:
             filename = str(filename).replace('\n\n', '')
-            print('FILENAME:',filename)
+            #print('FILENAME:',filename)
             image.save(f"{filename}.png")
         except Exception as e:
             print(e)
