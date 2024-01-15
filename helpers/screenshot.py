@@ -1,23 +1,22 @@
-from PIL import Image, ImageDraw
-import pyautogui
+from PIL import ImageGrab
 import pytesseract
+import re
+from pynput import mouse
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 class ScreenshotProcessor:
-    def take_screenshot(self):
-        return pyautogui.screenshot()
+    def capture_screen_regions(self, coords):
+        # Take a screenshot of the entire screen
+        screenshot = ImageGrab.grab()
+        #print(coords)
+        box1 = coords['bbox1']  # Replace with your actual coordinates
+        box2 = coords['bbox2']  # Replace with your actual coordinates
 
-    def modify_image(self, image):
-        # Convert the screenshot to a Pillow Image object
-        pil_image = Image.frombytes("RGB", image.size, image.tobytes())
-
-        draw = ImageDraw.Draw(pil_image)
-        draw.rectangle([120, 175, 250, 200], outline="red", width=2)
-
-        # Cut the section based on specified coordinates
-        cut_section = pil_image.crop((120, 175, 250, 200))
-
-        return pil_image, cut_section
+        text_region = screenshot.crop(box1)
+        #text_region.show()
+        graph_region = screenshot.crop(box2)
+        
+        return graph_region, text_region
     
     def recognize_text(self, image):
         # Use Tesseract OCR to recognize text from the image
@@ -26,11 +25,47 @@ class ScreenshotProcessor:
     
     def save_cut_section(self, image, filename):
         try:
-            filename = str(filename).replace('\n\n', '')
+            pattern = re.compile(r'[^\w]+')
+            cleaned_filename = re.sub(pattern, '', filename)
+            print(cleaned_filename)
             #print('FILENAME:',filename)
-            image.save(f"{filename}.png")
+            image.save(f"{cleaned_filename if cleaned_filename else 'UNDEFINED'}.png")
         except Exception as e:
             print(e)
+
+class CaptureCoords:
+    def __init__(self):
+        self.initial_point = None
+        self.final_point = None
+        self.listener = None
+        self.coords = {}
+
+    def capture_coordinates(self):
+        print("Click and drag to define a rectangle.")
+        try:
+            with mouse.Listener(on_click=self.on_click) as listener:
+                self.listener = listener
+                listener.join()
+        finally:
+            # Cleanup code
+            if self.listener:
+                self.listener.stop()
+            return self.coords
+
+    def on_click(self, x, y, button, pressed):
+        if len(self.coords) < 2:
+            if pressed and button == mouse.Button.left:
+                self.initial_point = (x, y)
+            elif not pressed and button == mouse.Button.left:
+                self.final_point = (x, y)
+                key = f'bbox{len(self.coords) + 1}'
+                self.coords[key] = self.initial_point + self.final_point
+                #print(self.coords)
+                self.initial_point = None
+                self.final_point = None
+        else:
+            self.listener.stop()
+        
 
 #def get_serialized_icon():
 #    icon_image = Image.open("./helpers/icon.png")  # Replace with the actual path to your icon
