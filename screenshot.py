@@ -2,7 +2,24 @@ from PIL import ImageGrab
 import pytesseract
 import re
 from pynput import mouse
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+import time
+import os
+import sys
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
+tesseract_dir = resource_path('Tesseract-OCR')
+    # Fallback for regular Python execution
+pytesseract.pytesseract.tesseract_cmd = os.path.join(tesseract_dir, "tesseract.exe")
 
 class ScreenshotProcessor:
     def capture_screen_regions(self, coords):
@@ -18,18 +35,23 @@ class ScreenshotProcessor:
         
         return graph_region, text_region
     
+
     def recognize_text(self, image):
         # Use Tesseract OCR to recognize text from the image
         recognized_text = pytesseract.image_to_string(image)
         return recognized_text
     
-    def save_cut_section(self, image, filename):
+    def save_cut_section(self, image, filename, folder):
         try:
+            #print(folder)
             pattern = re.compile(r'[^\w]+')
             cleaned_filename = re.sub(pattern, '', filename)
-            print(cleaned_filename)
+            filename = f"{cleaned_filename if cleaned_filename else str(time.time())}.jpg"
+            target = folder + '/' + filename
+            #print(target)
+            #print(cleaned_filename)
             #print('FILENAME:',filename)
-            image.save(f"{cleaned_filename if cleaned_filename else 'UNDEFINED'}.png")
+            image.save(target)
         except Exception as e:
             print(e)
 
@@ -41,7 +63,8 @@ class CaptureCoords:
         self.coords = {}
 
     def capture_coordinates(self):
-        print("Click and drag to define a rectangle.")
+        #print("Click and drag to define a rectangle.")
+        self.coords = {}
         try:
             with mouse.Listener(on_click=self.on_click) as listener:
                 self.listener = listener

@@ -1,16 +1,17 @@
 import keyboard
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QWidget
-from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QIcon, QCursor
-from helpers.screenshot import ScreenshotProcessor, CaptureCoords
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QWidget, QFileDialog
+from PyQt5.QtGui import QIcon
+from screenshot import ScreenshotProcessor, CaptureCoords, resource_path
 import threading
+
+
 class ScreenshotApp(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.timer = QTimer()
         self.processor = ScreenshotProcessor()
         self.capture_coords = CaptureCoords()
+        self.save_folder = None
         self.init_ui()
         
         app.setQuitOnLastWindowClosed(False)
@@ -18,16 +19,21 @@ class ScreenshotApp(QWidget):
         keyboard.add_hotkey("ctrl+alt+e", self.close_app)
 
     def init_ui(self):
-        self.tray_icon = QSystemTrayIcon(QIcon("helpers/icon.png"), self)
+        icon_path = resource_path("icon.png")
+        self.tray_icon = QSystemTrayIcon(QIcon(icon_path), self)
         self.tray_icon.show()
 
         menu = QMenu()
 
-        take_screenshot_action = QAction("Take Screenshot and Modify", self)
+        take_screenshot_action = QAction("Capturar Gráfico", self)
         take_screenshot_action.triggered.connect(self.take_screenshot_and_modify)
         menu.addAction(take_screenshot_action)
 
-        get_coords_action = QAction("Capture Coordinates", self)
+        save_directory_action = QAction('Selecionar Pasta', self)
+        save_directory_action.triggered.connect(self.set_save_directory)
+        menu.addAction(save_directory_action)
+
+        get_coords_action = QAction("Definir Coordenadas", self)
         get_coords_action.triggered.connect(self.get_coords)
         menu.addAction(get_coords_action)
         
@@ -44,20 +50,32 @@ class ScreenshotApp(QWidget):
         threading.Thread(target=self.take_screenshot_and_modify).start()
 
     def take_screenshot_and_modify(self):
-        if len(self.capture_coords.coords) == 2:
+        if len(self.capture_coords.coords) == 2 and self.save_folder:
             image, text_region = self.processor.capture_screen_regions(self.capture_coords.coords)
 
             #image.show()
             recognized_text = self.processor.recognize_text(text_region)
-            self.processor.save_cut_section(image, recognized_text)
-            self.tray_icon.showMessage("Amostra:", recognized_text, QSystemTrayIcon.Information, 2000)
+            self.processor.save_cut_section(image, recognized_text, self.save_folder)
+            if recognized_text:
+                self.tray_icon.showMessage("Amostra:", recognized_text, QSystemTrayIcon.Information, 1500)
+            else:
+                self.tray_icon.showMessage("Amostra:", 'NÃO RECONHECIDO', QSystemTrayIcon.Information, 1500)
         else:
-            self.tray_icon.showMessage("Coords", 'definir coordenadas', QSystemTrayIcon.Information, 2000)
+            self.tray_icon.showMessage("Coords", 'Definir configurações', QSystemTrayIcon.Warning, 2000)
             
         
     def get_coords(self):
         self.capture_coords.capture_coordinates()
 
+    def set_save_directory(self):
+        self.save_folder = None
+
+        options = QFileDialog.Options()
+        options |= QFileDialog.ShowDirsOnly
+        directory = QFileDialog.getExistingDirectory(self, "Seleccionar Pasta", options=options)
+        if directory:
+            #print("Selected Directory:", directory)
+            self.save_folder = directory
 
 
     def close_app(self):
