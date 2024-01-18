@@ -1,4 +1,4 @@
-from PIL import ImageGrab
+from PIL import ImageGrab, ImageEnhance
 import pytesseract
 import re
 from pynput import mouse
@@ -30,10 +30,14 @@ class ScreenshotProcessor:
         box2 = coords['bbox2']  # Replace with your actual coordinates
 
         text_region = screenshot.crop(box1)
-        #text_region.show()
+        scaled_text_region = text_region.resize((text_region.width * 4, text_region.height * 4))
+        enhancer = ImageEnhance.Contrast(scaled_text_region)
+        enhanced_text_region = enhancer.enhance(2.0)
+        #enhanced_text_region.show()
+
         graph_region = screenshot.crop(box2)
         
-        return graph_region, text_region
+        return graph_region, enhanced_text_region
     
 
     def recognize_text(self, image):
