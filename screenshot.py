@@ -1,4 +1,4 @@
-from PIL import ImageGrab, ImageEnhance
+from PIL import ImageGrab, ImageEnhance, ImageOps
 import pytesseract
 import re
 from pynput import mouse
@@ -22,6 +22,17 @@ tesseract_dir = resource_path('Tesseract-OCR')
 pytesseract.pytesseract.tesseract_cmd = os.path.join(tesseract_dir, "tesseract.exe")
 
 class ScreenshotProcessor:
+
+    def normalize_colors(self, image):
+
+        grayscale_image = ImageOps.grayscale(image)
+        contrast_enhancer = ImageEnhance.Contrast(grayscale_image)
+        contrast_enhanced_image = contrast_enhancer.enhance(2.0)  # Adjust the factor as needed
+        inverted_image = ImageOps.invert(contrast_enhanced_image)
+
+        return inverted_image
+    
+
     def capture_screen_regions(self, coords):
         # Take a screenshot of the entire screen
         screenshot = ImageGrab.grab()
@@ -30,6 +41,8 @@ class ScreenshotProcessor:
         box2 = coords['bbox2']  # Replace with your actual coordinates
 
         text_region = screenshot.crop(box1)
+        text_region = self.normalize_colors(text_region)
+
         scaled_text_region = text_region.resize((text_region.width * 4, text_region.height * 4))
         enhancer = ImageEnhance.Contrast(scaled_text_region)
         enhanced_text_region = enhancer.enhance(2.0)
@@ -58,6 +71,8 @@ class ScreenshotProcessor:
             image.save(target)
         except Exception as e:
             print(e)
+
+    
 
 class CaptureCoords:
     def __init__(self):
