@@ -35,7 +35,7 @@ class ScreenshotApp(QWidget):
         self.init_ui()
         
         app.setQuitOnLastWindowClosed(False)
-        keyboard.add_hotkey("ctrl+space", self.on_hotkey_pressed)
+        keyboard.add_hotkey("ctrl+space", self.on_hotkey_pressed, timeout=2)
         keyboard.add_hotkey("ctrl+alt+e", self.close_app)
 
     def init_ui(self):
