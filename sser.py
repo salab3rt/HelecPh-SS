@@ -1,9 +1,20 @@
 import keyboard
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QWidget, QFileDialog
-from PyQt5.QtGui import QIcon
+from win32 import win32gui
+import sys
+from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QWidget, QFileDialog, QInputDialog
+from PyQt6.QtGui import QIcon, QAction, QActionGroup
 from screenshot import ScreenshotProcessor, CaptureCoords, resource_path
 import threading
+import profiles
 
+def windowEnumerationHandler(hwnd, top_windows):
+    top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
+
+top_windows = []
+win32gui.EnumWindows(windowEnumerationHandler, top_windows)
+for i in top_windows:
+    if "HemElec" in i[1]: #CHANGE PROGRAM TO THE NAME OF YOUR WINDOW
+        sys.exit()
 
 class ScreenshotApp(QWidget):
     def __init__(self):
@@ -11,7 +22,16 @@ class ScreenshotApp(QWidget):
 
         self.processor = ScreenshotProcessor()
         self.capture_coords = CaptureCoords()
-        self.save_folder = None
+        self.profiles_handler = profiles.UserCoordProfile()
+        try:
+            self.current_profile = self.profiles_handler.current_profile
+            self.capture_coords.coords = self.current_profile['coords']
+            self.save_folder = self.current_profile['folder']
+        except Exception as e:
+            print(e)
+            self.save_folder = None
+            self.capture_coords.coords = {}
+        
         self.init_ui()
         
         app.setQuitOnLastWindowClosed(False)
@@ -28,19 +48,29 @@ class ScreenshotApp(QWidget):
         take_screenshot_action = QAction("Capturar Gráfico", self)
         take_screenshot_action.triggered.connect(self.take_screenshot_and_modify)
         menu.addAction(take_screenshot_action)
-
-        save_directory_action = QAction('Selecionar Pasta', self)
-        save_directory_action.triggered.connect(self.set_save_directory)
-        menu.addAction(save_directory_action)
+        
+        self.profile_menu = menu.addMenu("Profiles")
+        new_profile = QAction("Criar Perfil", self)
+        new_profile.triggered.connect(self.create_and_save_profile)
+        self.profile_menu.addAction(new_profile)
+        
+        for profile_name, _ in self.profiles_handler.profiles['profiles'].items():
+            #print(profile_name)
+            profile_action = QAction(profile_name, self)
+            profile_action.triggered.connect(lambda _, profile_name=profile_name: self.switch_profile(profile_name))
+            self.profile_menu.addAction(profile_action)
 
         get_coords_action = QAction("Definir Coordenadas", self)
         get_coords_action.triggered.connect(self.get_coords)
         menu.addAction(get_coords_action)
         
+        save_directory_action = QAction('Selecionar Pasta', self)
+        save_directory_action.triggered.connect(self.set_save_directory)
+        menu.addAction(save_directory_action)
+        
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close_app)
         menu.addAction(exit_action)
-        
         
 
         self.tray_icon.setContextMenu(menu)
@@ -57,21 +87,49 @@ class ScreenshotApp(QWidget):
             recognized_text = self.processor.recognize_text(text_region)
             self.processor.save_cut_section(image, recognized_text, self.save_folder)
             if recognized_text:
-                self.tray_icon.showMessage("Amostra:", recognized_text, QSystemTrayIcon.Information, 1500)
+                self.tray_icon.showMessage("Amostra:", recognized_text, QSystemTrayIcon.MessageIcon.Information, 1500)
             else:
-                self.tray_icon.showMessage("Amostra:", 'NÃO RECONHECIDO', QSystemTrayIcon.Information, 1500)
+                self.tray_icon.showMessage("Amostra:", 'NÃO RECONHECIDO', QSystemTrayIcon.MessageIcon.Information, 1500)
         else:
-            self.tray_icon.showMessage("Coords", 'Definir configurações', QSystemTrayIcon.Warning, 2000)
+            self.tray_icon.showMessage("Configurações", 'Definir configurações', QSystemTrayIcon.MessageIcon.Warning, 2000)
             
-        
+    def create_and_save_profile(self, new_profile_name):
+        if self.capture_coords.coords and self.save_folder:
+            new_profile_name, ok = QInputDialog.getText(None, "New Profile", "Enter profile name:")
+            
+            if ok and new_profile_name and self.capture_coords.coords and self.save_folder:
+                new_profile = {
+                                'coords': self.capture_coords.coords.copy(),
+                                'folder': self.save_folder
+                            }
+                #print(new_profile)
+                try:
+                    self.profiles_handler.save_profile(new_profile_name, new_profile)
+                    profile_action = QAction(new_profile_name, self)
+                    profile_action.triggered.connect(lambda _, profile_name=new_profile_name: self.switch_profile(profile_name))
+                    self.profile_menu.addAction(profile_action)
+                    self.profiles_handler.profiles = self.profiles_handler.load_profiles()
+                except Exception as e:
+                    print(e)
+                    self.tray_icon.showMessage("Perfil", 'Falha ao adicionar perfil', QSystemTrayIcon.MessageIcon.Warning, 2000)
+                    
+        else:
+            self.tray_icon.showMessage("Configurações", 'Definir configurações', QSystemTrayIcon.MessageIcon.Warning, 2000)
+            
     def get_coords(self):
-        self.capture_coords.capture_coordinates()
+        coords = self.capture_coords.capture_coordinates()
+        #print(coords)
+        
+    def switch_profile(self, profile_name):
+        self.profiles_handler.current_profile = self.profiles_handler.profiles['profiles'][profile_name]
+        self.capture_coords.coords = self.profiles_handler.current_profile['coords']
+        self.save_folder = self.profiles_handler.current_profile['folder']
 
     def set_save_directory(self):
         self.save_folder = None
 
-        options = QFileDialog.Options()
-        options |= QFileDialog.ShowDirsOnly
+        options = QFileDialog.Option.ShowDirsOnly
+        #options |= QFileDialog.ShowDirsOnly
         directory = QFileDialog.getExistingDirectory(self, "Seleccionar Pasta", options=options)
         if directory:
             #print("Selected Directory:", directory)
@@ -79,18 +137,18 @@ class ScreenshotApp(QWidget):
 
 
     def close_app(self):
-        self.tray_icon.hide()
-        self.close()
-        app.quit()
-
+        app.closeAllWindows()
+        sys.exit(app.exit())
 
 if __name__ == "__main__":
     app = QApplication([])
-    app.setApplicationName("Elec. Hem SS")
+    app.setApplicationName("HemElec")
     screenshot_app = ScreenshotApp()
     try:
-        app.exec_()
-    except KeyboardInterrupt:
-        app.quit()
-    except Exception as e:
-        print(f"Exception: {e}")
+        sys.exit(app.exec())
+    except KeyboardInterrupt and Exception as e:
+        if e:
+            print(f"Exception: {e}")
+    finally:
+        app.closeAllWindows()
+        sys.exit(app.exit())

@@ -1,4 +1,4 @@
-from PIL import ImageGrab, ImageEnhance, ImageOps
+from PIL import ImageGrab, ImageOps, ImageStat
 import pytesseract
 import re
 from pynput import mouse
@@ -23,13 +23,14 @@ pytesseract.pytesseract.tesseract_cmd = os.path.join(tesseract_dir, "tesseract.e
 
 class ScreenshotProcessor:
 
+    
+    
     def normalize_colors(self, image):
 
         grayscale_image = ImageOps.grayscale(image)
-        contrast_enhancer = ImageEnhance.Contrast(grayscale_image)
-        contrast_enhanced_image = contrast_enhancer.enhance(2.0)  # Adjust the factor as needed
-        inverted_image = ImageOps.invert(contrast_enhanced_image)
-
+        inverted_image = ImageOps.invert(grayscale_image)
+        
+        #inverted_image.show()
         return inverted_image
     
 
@@ -41,33 +42,57 @@ class ScreenshotProcessor:
         box2 = coords['bbox2']  # Replace with your actual coordinates
 
         text_region = screenshot.crop(box1)
-        text_region = self.normalize_colors(text_region)
-
-        scaled_text_region = text_region.resize((text_region.width * 4, text_region.height * 4))
-        enhancer = ImageEnhance.Contrast(scaled_text_region)
-        enhanced_text_region = enhancer.enhance(2.0)
-        #enhanced_text_region.show()
+        
+        scaled_text_region = text_region.resize((text_region.width * 10, text_region.height * 10))
+        
+        text_region = self.normalize_colors(scaled_text_region)
+        
+        
+        #stat = ImageStat.Stat(text_region)
+        #mean_color = stat.mean[:3]
+    
+        #print(mean_color)
+        #if mean_color[0] < 100:
+        #    threshold = 150
+        #    text_region = text_region.point(lambda i: i if i > threshold else 0)
+        #else:
+        #    threshold = 200
+        #    text_region = text_region.point(lambda i: i if i < threshold else 255)
+            
+        #text_region.show()
+        
 
         graph_region = screenshot.crop(box2)
         
-        return graph_region, enhanced_text_region
+        return graph_region, text_region
     
 
     def recognize_text(self, image):
         # Use Tesseract OCR to recognize text from the image
-        recognized_text = pytesseract.image_to_string(image)
-        return recognized_text
+        recognized_text = pytesseract.image_to_string(image, config='--psm 8 -l eng')
+        
+        char_mapping = {
+                        '1': 'I',
+                        '4': 'A',
+                        '5': 'S',
+                        '2': 'Z',
+                        '0': 'O',
+                        '8': 'B'
+                    }
+        
+        pattern = re.compile(r'[^a-zA-Z0-9]+')
+        cleaned_filename = re.sub(pattern, '', recognized_text)
+        
+        modified_text = ''.join(char_mapping.get(char, char) for char in cleaned_filename[:2]) + cleaned_filename[2:]
+        
+        #print(modified_text)
+        return modified_text
     
     def save_cut_section(self, image, filename, folder):
         try:
-            #print(folder)
-            pattern = re.compile(r'[^\w]+')
-            cleaned_filename = re.sub(pattern, '', filename)
-            filename = f"{cleaned_filename if cleaned_filename else str(time.time())}.jpg"
+            
+            filename = f"{filename if filename else str(time.time())}.jpg"
             target = folder + '/' + filename
-            #print(target)
-            #print(cleaned_filename)
-            #print('FILENAME:',filename)
             image.save(target)
         except Exception as e:
             print(e)

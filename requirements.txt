@@ -1,7 +1,7 @@
 keyboard
 #auto-py-to-exe
 pillow
-PyQt5
-#pywin32
+PyQt6
+pywin32
 pytesseract
 pynput
