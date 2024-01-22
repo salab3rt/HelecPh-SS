@@ -5,3 +5,4 @@ PyQt6
 pywin32
 pytesseract
 pynput
+#qtmodern

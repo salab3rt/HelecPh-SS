@@ -3,8 +3,10 @@ from win32 import win32gui
 import sys
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QWidget, QFileDialog, QInputDialog
 from PyQt6.QtGui import QIcon, QAction, QActionGroup
+from PyQt6.QtCore import Qt
 from screenshot import ScreenshotProcessor, CaptureCoords, resource_path
 import threading
+import time
 import profiles
 
 def windowEnumerationHandler(hwnd, top_windows):
@@ -23,6 +25,7 @@ class ScreenshotApp(QWidget):
         self.processor = ScreenshotProcessor()
         self.capture_coords = CaptureCoords()
         self.profiles_handler = profiles.UserCoordProfile()
+        self.hotkey_pressed_time = 0
         try:
             self.current_profile = self.profiles_handler.current_profile
             self.capture_coords.coords = self.current_profile['coords']
@@ -44,7 +47,6 @@ class ScreenshotApp(QWidget):
         self.tray_icon.show()
 
         menu = QMenu()
-
         take_screenshot_action = QAction("Capturar Gráfico", self)
         take_screenshot_action.triggered.connect(self.take_screenshot_and_modify)
         menu.addAction(take_screenshot_action)
@@ -76,8 +78,11 @@ class ScreenshotApp(QWidget):
         self.tray_icon.setContextMenu(menu)
 
     def on_hotkey_pressed(self):
-        # Create a new thread when the hotkey is pressed
-        threading.Thread(target=self.take_screenshot_and_modify).start()
+        current_time = time.time()
+        if current_time - self.hotkey_pressed_time > 1:
+            # Create a new thread
+            threading.Thread(target=self.take_screenshot_and_modify).start()
+            self.hotkey_pressed_time = current_time
 
     def take_screenshot_and_modify(self):
         if len(self.capture_coords.coords) == 2 and self.save_folder:
@@ -143,6 +148,7 @@ class ScreenshotApp(QWidget):
 if __name__ == "__main__":
     app = QApplication([])
     app.setApplicationName("HemElec")
+    app.setStyle("Fusion")
     screenshot_app = ScreenshotApp()
     try:
         sys.exit(app.exec())
