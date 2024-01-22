@@ -1,10 +1,7 @@
 from PIL import ImageGrab, ImageOps
 from PyQt6.QtCore import Qt, QRect
-from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QLabel, QWidget, QPushButton,QMessageBox
 import pytesseract
-import keyboard
-#from pynput import mouse
 import time, os, sys, re
 
 def resource_path(relative_path):

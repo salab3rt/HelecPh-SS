@@ -2,8 +2,7 @@ import keyboard
 from win32 import win32gui
 import sys
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QWidget, QFileDialog, QInputDialog
-from PyQt6.QtGui import QIcon, QAction, QActionGroup
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QAction
 from screenshot import ScreenshotProcessor, CaptureCoords, resource_path
 import threading
 import time
@@ -31,11 +30,11 @@ class ScreenshotApp(QWidget):
             self.capture_coords.coords = self.current_profile['coords']
             self.save_folder = self.current_profile['folder']
         except Exception as e:
-            print(e)
+            #print(e)
             self.save_folder = None
             self.capture_coords.coords = {}
         
-        print(self.capture_coords.coords)
+        #print(self.capture_coords.coords)
         
         self.init_ui()
         

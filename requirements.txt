@@ -4,5 +4,5 @@ pillow
 PyQt6
 pywin32
 pytesseract
-pynput
+#pynput
 #qtmodern
