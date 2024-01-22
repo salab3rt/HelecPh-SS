@@ -23,7 +23,7 @@ class ScreenshotApp(QWidget):
         super().__init__()
 
         self.processor = ScreenshotProcessor()
-        self.capture_coords = CaptureCoords()
+        self.capture_coords = CaptureCoords(app)
         self.profiles_handler = profiles.UserCoordProfile()
         self.hotkey_pressed_time = 0
         try:
@@ -34,6 +34,8 @@ class ScreenshotApp(QWidget):
             print(e)
             self.save_folder = None
             self.capture_coords.coords = {}
+        
+        print(self.capture_coords.coords)
         
         self.init_ui()
         
@@ -122,7 +124,9 @@ class ScreenshotApp(QWidget):
             self.tray_icon.showMessage("Configurações", 'Definir configurações', QSystemTrayIcon.MessageIcon.Warning, 2000)
             
     def get_coords(self):
-        coords = self.capture_coords.capture_coordinates()
+        
+        self.capture_coords.show()
+        #coords = self.capture_coords.capture_coordinates()
         #print(coords)
         
     def switch_profile(self, profile_name):

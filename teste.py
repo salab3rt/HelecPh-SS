@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsOpacityEffect, QLabel, QWidget
 from PyQt6.QtCore import Qt, QRect
 
-class FullScreenOverlay(QWidget):
+class CaptureCoords(QWidget):
     def __init__(self):
         super().__init__()
 
@@ -17,7 +17,7 @@ class FullScreenOverlay(QWidget):
         #self.opacity_effect = QGraphicsOpacityEffect(self)
         #self.opacity_effect.setOpacity(0.5)
 
-        self.overlay_label = QLabel(self)
+        self.overlay_label = QWidget(self)
         self.overlay_label.setGeometry(0, 0, self.width(), self.height())
         self.overlay_label.setStyleSheet("background-color: rgba(0, 0, 0, 128);")
         #self.overlay_label.setGraphicsEffect(self.opacity_effect)
@@ -29,7 +29,7 @@ class FullScreenOverlay(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-        # Set the initial point on mouse press
+            
             self.initial_point = event.pos()
             
         if event.button() == Qt.MouseButton.RightButton:
@@ -41,7 +41,6 @@ class FullScreenOverlay(QWidget):
 
                 self.rect_coords.pop()
                 
-            
         self.show_drawn_rectangles()
         
         event.accept()  # Indicate that the event was handled
@@ -78,7 +77,8 @@ class FullScreenOverlay(QWidget):
             label = QLabel(self)
             label.setObjectName('current_rect')
             label.setGeometry(rect)
-            label.setStyleSheet("border: 2px solid red; background-color: transparent;")
+            label.setStyleSheet("border: 2px solid red; background-color: rgba(0, 0, 0, 0);")
+            
             label.show()
             
     def show_drawn_rectangles(self):
@@ -94,7 +94,7 @@ class FullScreenOverlay(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    overlay = FullScreenOverlay()
+    overlay = CaptureCoords()
     overlay.show()
     try:
         sys.exit(app.exec())
