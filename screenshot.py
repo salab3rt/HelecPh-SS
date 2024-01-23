@@ -57,7 +57,7 @@ class ScreenshotProcessor:
         
         
 
-        text_region.show()
+        #text_region.show()
         
         return graph_region, text_region
     
