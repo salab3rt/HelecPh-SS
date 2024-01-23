@@ -65,7 +65,7 @@ class ScreenshotProcessor:
     def recognize_text(self, image):
         # Use Tesseract OCR to recognize text from the image
         recognized_text = pytesseract.image_to_string(image, config='--psm 7')
-        print(recognized_text)
+        #print(recognized_text)
         
         char_mapping = {
                         '1': 'I',
