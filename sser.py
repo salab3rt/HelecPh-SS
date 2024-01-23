@@ -91,7 +91,7 @@ class ScreenshotApp(QWidget):
 
     def on_hotkey_pressed(self):
         current_time = time.time()
-        if current_time - self.hotkey_pressed_time > 1:
+        if current_time - self.hotkey_pressed_time > 0.5:
             # Create a new thread
             self.take_screenshot_and_modify()
             #threading.Thread(target=self.take_screenshot_and_modify).start()
@@ -106,8 +106,9 @@ class ScreenshotApp(QWidget):
             text, ok_pressed = QInputDialog.getText(None, 'Amostra', 'Enter your text:', text=f'{recognized_text[:20] if recognized_text else "Não Reconhecido"}')
             if ok_pressed and text:
                 self.tray_icon.showMessage("Amostra:", text, QSystemTrayIcon.MessageIcon.Information, 1000)
-
-                self.processor.save_cut_section(image, text, self.save_folder)
+                #threading.Thread(target=self.take_screenshot_and_modify).start()
+                threading.Thread(target=self.processor.save_cut_section, args=[image, text, self.save_folder]).start()
+                #self.processor.save_cut_section(image, text, self.save_folder)
 
         else:
             self.tray_icon.showMessage("Configurações", 'Definir configurações', QSystemTrayIcon.MessageIcon.Warning, 2000)
