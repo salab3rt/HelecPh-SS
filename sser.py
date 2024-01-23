@@ -3,6 +3,7 @@ from win32 import win32gui
 import sys
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QWidget, QFileDialog, QInputDialog
 from PyQt6.QtGui import QIcon, QAction
+from PyQt6.QtCore import QTimer
 from screenshot import ScreenshotProcessor, CaptureCoords, resource_path
 import threading
 import time
@@ -39,8 +40,18 @@ class ScreenshotApp(QWidget):
         self.init_ui()
         
         app.setQuitOnLastWindowClosed(False)
-        keyboard.add_hotkey("ctrl+space", self.on_hotkey_pressed, timeout=2)
-        keyboard.add_hotkey("ctrl+alt+e", self.close_app)
+        
+        self.keyboard_timer = QTimer(self)
+        self.keyboard_timer.timeout.connect(self.check_keyboard_input)
+        self.keyboard_timer.start(100)
+        #keyboard.add_hotkey("ctrl+space", self.on_hotkey_pressed, timeout=2)
+        #keyboard.add_hotkey("ctrl+alt+e", self.close_app)
+
+    def check_keyboard_input(self):
+        if keyboard.is_pressed('ctrl+space'):
+            self.on_hotkey_pressed()
+        elif keyboard.is_pressed('ctrl+alt+e'):
+            self.close_app()
 
     def init_ui(self):
         icon_path = resource_path("icon.png")
@@ -82,20 +93,22 @@ class ScreenshotApp(QWidget):
         current_time = time.time()
         if current_time - self.hotkey_pressed_time > 1:
             # Create a new thread
-            threading.Thread(target=self.take_screenshot_and_modify).start()
+            self.take_screenshot_and_modify()
+            #threading.Thread(target=self.take_screenshot_and_modify).start()
             self.hotkey_pressed_time = current_time
 
     def take_screenshot_and_modify(self):
         if len(self.capture_coords.coords) == 2 and self.save_folder:
             image, text_region = self.processor.capture_screen_regions(self.capture_coords.coords)
 
-            #image.show()
             recognized_text = self.processor.recognize_text(text_region)
-            self.processor.save_cut_section(image, recognized_text, self.save_folder)
-            if recognized_text:
-                self.tray_icon.showMessage("Amostra:", recognized_text, QSystemTrayIcon.MessageIcon.Information, 1500)
-            else:
-                self.tray_icon.showMessage("Amostra:", 'NÃO RECONHECIDO', QSystemTrayIcon.MessageIcon.Information, 1500)
+            
+            text, ok_pressed = QInputDialog.getText(None, 'Amostra', 'Enter your text:', text=f'{recognized_text[:20] if recognized_text else "Não Reconhecido"}')
+            if ok_pressed and text:
+                self.tray_icon.showMessage("Amostra:", text, QSystemTrayIcon.MessageIcon.Information, 1000)
+
+                self.processor.save_cut_section(image, text, self.save_folder)
+
         else:
             self.tray_icon.showMessage("Configurações", 'Definir configurações', QSystemTrayIcon.MessageIcon.Warning, 2000)
             

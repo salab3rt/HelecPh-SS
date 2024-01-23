@@ -1,4 +1,4 @@
-from PIL import ImageGrab, ImageOps
+from PIL import ImageGrab, ImageOps, Image, ImageFilter
 from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtWidgets import QLabel, QWidget, QPushButton,QMessageBox
 import pytesseract
@@ -26,32 +26,36 @@ class ScreenshotProcessor:
         inverted_image = ImageOps.invert(grayscale_image)
         #inverted_image.show()
         return inverted_image
+        
     
+            
     def capture_screen_regions(self, coords):
+        def threshold_func(pixel_value):
+            threshold = 127
+            if pixel_value > threshold:
+                return 0
+            else:
+                return 255
+            
         screenshot = ImageGrab.grab()
         #print(coords)
         box1 = coords['bbox1']  # Replace with your actual coordinates
         box2 = coords['bbox2']  # Replace with your actual coordinates
 
         text_region = screenshot.crop(box1)
+        text_region = text_region.resize((text_region.width * 2, text_region.height * 2), Image.LANCZOS)
+        text_region = text_region.point(threshold_func)
+        text_region = text_region.convert('L')
+        text_region = text_region.filter(ImageFilter.SHARPEN)
         
-        scaled_text_region = text_region.resize((text_region.width * 10, text_region.height * 10))
         
-        text_region = self.normalize_colors(scaled_text_region)
+        #text_region = self.normalize_colors(scaled_text_region)
+        #text_region = self.normalize_colors(text_region)
         
         graph_region = screenshot.crop(box2)
         
-        #stat = ImageStat.Stat(text_region)
-        #mean_color = stat.mean[:3]
-    
-        #print(mean_color)
-        #if mean_color[0] < 100:
-        #    threshold = 150
-        #    text_region = text_region.point(lambda i: i if i > threshold else 0)
-        #else:
-        #    threshold = 200
-        #    text_region = text_region.point(lambda i: i if i < threshold else 255)
-            
+        
+
         #text_region.show()
         
         return graph_region, text_region
@@ -59,7 +63,7 @@ class ScreenshotProcessor:
 
     def recognize_text(self, image):
         # Use Tesseract OCR to recognize text from the image
-        recognized_text = pytesseract.image_to_string(image, config='--psm 8 -l eng')
+        recognized_text = pytesseract.image_to_string(image, config='--psm 6')
         
         char_mapping = {
                         '1': 'I',
