@@ -43,10 +43,11 @@ class ScreenshotProcessor:
         box2 = coords['bbox2']  # Replace with your actual coordinates
 
         text_region = screenshot.crop(box1)
-        text_region = text_region.resize((text_region.width * 2, text_region.height * 2), Image.LANCZOS)
-        text_region = text_region.point(threshold_func)
+        text_region = text_region.resize((text_region.width * 3, text_region.height * 3), Image.BOX)
+        text_region = text_region.filter(ImageFilter.SMOOTH_MORE)
         text_region = text_region.convert('L')
-        text_region = text_region.filter(ImageFilter.SHARPEN)
+        text_region = text_region.point(threshold_func)
+        text_region = ImageOps.invert(text_region)
         
         
         #text_region = self.normalize_colors(scaled_text_region)
@@ -56,14 +57,15 @@ class ScreenshotProcessor:
         
         
 
-        #text_region.show()
+        text_region.show()
         
         return graph_region, text_region
     
 
     def recognize_text(self, image):
         # Use Tesseract OCR to recognize text from the image
-        recognized_text = pytesseract.image_to_string(image, config='--psm 6')
+        recognized_text = pytesseract.image_to_string(image, config='--psm 7')
+        print(recognized_text)
         
         char_mapping = {
                         '1': 'I',
@@ -71,15 +73,24 @@ class ScreenshotProcessor:
                         '5': 'S',
                         '2': 'Z',
                         '0': 'O',
-                        '8': 'B'
+                        '8': 'B',
+                        '*': 'X',
+                        '¥': 'X',
+                        'x': 'X'
                     }
         
+        third_char_mapping = {
+                                '0': 'O'
+                            }
+        modified_text = ''.join(char_mapping.get(char, char) for char in recognized_text[:2]) \
+                        + ''.join(third_char_mapping.get(char, char) for char in recognized_text[2])\
+                        + recognized_text[3:]
+        
         pattern = re.compile(r'[^a-zA-Z0-9]+')
-        cleaned_filename = re.sub(pattern, '', recognized_text)
+        cleaned_filename = re.sub(pattern, '', modified_text)
         
-        modified_text = ''.join(char_mapping.get(char, char) for char in cleaned_filename[:2]) + cleaned_filename[2:]
         
-        return modified_text
+        return cleaned_filename
     
     def save_cut_section(self, image, filename, folder):
         try:
