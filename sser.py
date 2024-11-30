@@ -100,8 +100,10 @@ class ScreenshotApp(QWidget):
     def take_screenshot_and_modify(self):
         if len(self.capture_coords.coords) == 2 and self.save_folder:
             image, text_region = self.processor.capture_screen_regions(self.capture_coords.coords)
-
-            recognized_text = self.processor.recognize_text(text_region)
+            try:
+                recognized_text = self.processor.recognize_text(text_region)
+            except:
+                recognized_text = ''
             
             text, ok_pressed = QInputDialog.getText(None, 'Amostra', 'Enter your text:', text=f'{recognized_text[:20] if recognized_text else "Não Reconhecido"}')
             if ok_pressed and text:
